@@ -1,0 +1,20 @@
+# Example twine configuration. Copy to ~/.pypirc and fill in tokens for LOCAL
+# use only. In CI, prefer environment variables / repository secrets instead of
+# committing this file. NEVER commit real tokens.
+#
+#   cp ci-cd/pypirc.example ~/.pypirc   (Linux/macOS)
+#   Copy-Item ci-cd/pypirc.example $HOME/.pypirc   (Windows PowerShell)
+[distutils]
+index-servers =
+    pypi
+    testpypi
+
+[pypi]
+repository = https://upload.pypi.org/legacy/
+username = __token__
+password = pypi-REPLACE_WITH_YOUR_PYPI_TOKEN
+
+[testpypi]
+repository = https://test.pypi.org/legacy/
+username = __token__
+password = pypi-REPLACE_WITH_YOUR_TESTPYPI_TOKEN

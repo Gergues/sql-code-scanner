@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyzpa"
+version = "0.1.0"
+description = "Minimal Python static analyzer for Oracle PL/SQL (Lark-based MVP, ZPA-inspired)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "LGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "pyzpa contributors" }]
+keywords = ["plsql", "oracle", "static-analysis", "linter", "sql"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: SQL",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "lark>=1.1.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/felipebz/zpa"
+Repository = "https://github.com/felipebz/zpa"
+Issues = "https://github.com/felipebz/zpa/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+pyzpa = "pyzpa.cli:main"
+
+[project.entry-points."pyzpa.checks"]
+# Third-party check packages can register additional checks here, e.g.:
+# my_rules = "my_company.rules:CHECKS"
+
+[tool.setuptools.packages.find]
+include = ["pyzpa*"]
+
+[tool.setuptools.package-data]
+pyzpa = ["grammar/*.lark"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

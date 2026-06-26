@@ -1,0 +1,47 @@
+# Periodic publish: build a uniquely-versioned dev release on a schedule and
+# push it to TestPyPI. This is the "publish periodically" pipeline.
+#
+# Why TestPyPI for scheduled runs?
+#   The real PyPI rejects re-uploads of an existing version, so a recurring job
+#   only makes sense if each run produces a NEW version. This workflow stamps a
+#   PEP 440 `.devN` suffix (UTC timestamp) so every nightly build is unique and
+#   installable from TestPyPI, without touching your real release stream on PyPI.
+#
+# Auth: token-based via the TEST_PYPI_API_TOKEN repository secret
+#   (a token created on https://test.pypi.org/).
+#
+# Adjust the cron below to change cadence. Times are UTC.
+name: Nightly TestPyPI
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # every day at 03:00 UTC
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: pyzpa
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    environment: testpypi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Stamp a unique .devN version
+        run: python ci-cd/stamp_dev_version.py
+
+      - name: Build & validate distribution
+        run: bash ci-cd/build.sh
+
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: bash ci-cd/publish.sh testpypi

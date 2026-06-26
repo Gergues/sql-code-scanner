@@ -1,0 +1,99 @@
+// Minimal Oracle PL/SQL grammar subset for the pyzpa MVP.
+// Parsed with Lark's Earley parser (dynamic lexer), positions propagated.
+// This is intentionally a SUBSET — enough to drive the starter checks.
+
+start: program_unit*
+
+?program_unit: anonymous_block
+             | create_procedure
+             | create_function
+
+anonymous_block: declare_section? "BEGIN"i statement* exception_section? "END"i ";"
+
+create_procedure: "CREATE"i ("OR"i "REPLACE"i)? "PROCEDURE"i qualified_name parameter_list? _is_as declaration* "BEGIN"i statement* exception_section? "END"i qualified_name? ";"
+
+create_function: "CREATE"i ("OR"i "REPLACE"i)? "FUNCTION"i qualified_name parameter_list? "RETURN"i datatype _is_as declaration* "BEGIN"i statement* exception_section? "END"i qualified_name? ";"
+
+_is_as: "IS"i | "AS"i
+
+parameter_list: "(" parameter ("," parameter)* ")"
+parameter: NAME _mode? datatype (":=" expression)?
+_mode: "IN"i "OUT"i | "IN"i | "OUT"i
+
+declare_section: "DECLARE"i declaration*
+declaration: variable_declaration
+variable_declaration: NAME datatype (":=" expression)? ";"
+
+datatype: qualified_name ("(" NUMBER ("," NUMBER)? ")")?
+
+exception_section: "EXCEPTION"i exception_handler+
+exception_handler: "WHEN"i expression "THEN"i statement*
+
+?statement: assignment_statement
+          | if_statement
+          | loop_statement
+          | null_statement
+          | return_statement
+          | raise_statement
+          | select_statement
+          | nested_block
+          | call_statement
+
+nested_block: "BEGIN"i statement* exception_section? "END"i ";"
+
+assignment_statement: qualified_name ":=" expression ";"
+null_statement: "NULL"i ";"
+return_statement: "RETURN"i expression? ";"
+raise_statement: "RAISE"i qualified_name? ";"
+
+if_statement: "IF"i expression "THEN"i statement* elsif_clause* else_clause? "END"i "IF"i ";"
+elsif_clause: "ELSIF"i expression "THEN"i statement*
+else_clause: "ELSE"i statement*
+
+loop_statement: _loop_header? "LOOP"i statement* "END"i "LOOP"i ";"
+_loop_header: "WHILE"i expression
+            | "FOR"i NAME "IN"i expression ".." expression
+
+call_statement: qualified_name ("(" arguments? ")")? ";"
+arguments: expression ("," expression)*
+
+select_statement: "SELECT"i select_item ("," select_item)* "INTO"i qualified_name ("," qualified_name)* "FROM"i table_ref ("," table_ref)* where_clause? ";"
+select_item: "*"            -> select_all_columns
+           | expression
+table_ref: qualified_name NAME?
+where_clause: "WHERE"i expression
+
+?expression: or_expr
+?or_expr: and_expr ("OR"i and_expr)*
+?and_expr: not_expr ("AND"i not_expr)*
+?not_expr: "NOT"i not_expr
+         | comparison
+?comparison: sum
+           | sum "=" sum                 -> eq_comparison
+           | sum ("<>" | "!=") sum        -> neq_comparison
+           | sum ("<=" | ">=" | "<" | ">") sum -> rel_comparison
+           | sum "IS"i "NULL"i            -> is_null
+           | sum "IS"i "NOT"i "NULL"i     -> is_not_null
+?sum: product (("+" | "-") product)*
+?product: factor (("*" | "/") factor)*
+?factor: "(" expression ")"
+       | "NULL"i        -> null_literal
+       | NUMBER         -> number_literal
+       | STRING         -> string_literal
+       | function_call
+       | qualified_name
+
+function_call: qualified_name "(" arguments? ")"
+qualified_name: NAME ("." NAME)*
+
+NAME: /[A-Za-z][A-Za-z0-9_$#]*/
+NUMBER: /\d+(\.\d+)?/
+STRING: /'([^']|'')*'/
+
+COMMENT_LINE: /--[^\n]*/
+COMMENT_BLOCK: /\/\*([^*]|\*(?!\/))*\*\//
+
+%import common.WS
+%ignore WS
+%ignore COMMENT_LINE
+%ignore COMMENT_BLOCK
